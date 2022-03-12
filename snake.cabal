@@ -1,0 +1,12 @@
+cabal-version: 2.4
+name:          snake
+version:       0.0
+synopsis:      A snake game using Yampa
+author:        Kiana Sheibani
+license:       MIT
+build-type:    Simple
+
+executable snake
+  main-is:        Main.hs
+  other-modules:
+  build-depends:
