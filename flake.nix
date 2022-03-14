@@ -5,7 +5,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         overlays = [];
-        pkgs = import nixpkgs { inherit system overlays; config.allowBroken = true; };
+        pkgs = nixpkgs.legacyPackages.${system};
         
         # package/executable name
         packageName = "snake";
