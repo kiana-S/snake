@@ -30,6 +30,13 @@
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv (with hp; [
                 # Specify your build/dev dependencies here.
+                hlint
+                haskell-language-server
+                ormolu
+
+                pkgs.mesa
+                pkgs.mesa_glu
+                pkgs.freeglut
               ]);
           };
       in
