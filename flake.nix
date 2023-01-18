@@ -1,5 +1,10 @@
 {
-  description = "A snake game in Haskell using Yampa";
+  description = "A snake game in Haskell using Dunai";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
 
   outputs = { self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem (system:
@@ -12,7 +17,7 @@
         execName = packageName;
         
         # version of ghc used
-        hp = pkgs.haskellPackages;
+        hp = pkgs.haskell.packages.ghc92;
         
         project = returnShellEnv:
           hp.developPackage {
@@ -20,13 +25,6 @@
             name = packageName;
             root = ./.;
             withHoogle = false;
-            overrides = self: super: with pkgs.haskell.lib; {
-              # Use callCabal2nix to override Haskell dependencies here
-              # cf. https://tek.brick.do/K3VXJd8mEKO7
-              # Example: 
-              # > NanoID = self.callCabal2nix "NanoID" inputs.NanoID { };
-              # Assumes that you have the 'NanoID' flake input defined.
-            };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv (with hp; [
                 # Specify your build/dev dependencies here.
