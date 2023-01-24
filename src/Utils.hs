@@ -33,10 +33,10 @@ playMSF display color freq msf = do
 
   playIO display color freq () toPic handleInput stepWorld
 
-type Drawer = WriterT Picture (ReaderT (Maybe Event) IO)
+type DrawerT m = WriterT Picture (ReaderT (Maybe Event) m)
 
-runDrawerS :: MSF Drawer () () -> MSF IO (Maybe Event) Picture
+runDrawerS :: Monad m => MSF (DrawerT m) () () -> MSF m (Maybe Event) Picture
 runDrawerS msf = arr (,()) >>> runReaderS (runWriterS msf) >>> arr fst
 
-draw :: MSF Drawer Picture ()
+draw :: Monad m => MSF (DrawerT m) Picture ()
 draw = arrM tell
