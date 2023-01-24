@@ -7,7 +7,10 @@ license:       MIT
 build-type:    Simple
 
 executable snake
+  hs-source-dirs: src
   main-is:        Main.hs
-  default-language: GHC2021
-  other-modules:
-  build-depends: dunai
+  default-language:   GHC2021
+  default-extensions: Arrows
+  build-depends: base,
+                 dunai,
+                 gloss
