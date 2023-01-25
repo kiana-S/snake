@@ -59,4 +59,5 @@ mainSF = proc () -> do
   -- undefined is safe here because the first frame is guaranteed to be a tick
   state <- hold undefined -< state'
 
-  returnA -< ()
+  -- Display the current state
+  displayState -< state
