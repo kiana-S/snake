@@ -31,8 +31,17 @@ handleEvents = mapMaybe getDir <$> liftTransS (constM ask)
     getDir _ = Nothing
 
 tick :: Monad m => MSF (DrawerT m) (Maybe Direction) GameState
-tick = next initialState $ feedback initialState $ proc (dir, state) -> do
-  returnA -< (state, state)
+tick =
+  next initialState $
+    mealy
+      ( \input state ->
+          let moveDir = setDir state.moveDir input
+              snakePos = movePos moveDir <$> state.snakePos
+              berryPos = state.berryPos
+              newstate = GameState {..}
+           in (newstate, newstate)
+      )
+      initialState
 
 mainSF :: Monad m => MSF (DrawerT m) () ()
 mainSF = proc () -> do
