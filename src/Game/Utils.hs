@@ -1,4 +1,4 @@
-module Utils where
+module Game.Utils where
 
 import Control.Monad.Trans.MSF.Reader
 import Control.Monad.Trans.MSF.Writer
@@ -24,19 +24,43 @@ playMSF display color freq msf = do
       -- A function to handle input events.
       handleInput e _ = do
         writeIORef evRef (Just e)
-        react handle
 
       -- A function to step the world one iteration.
       stepWorld _ _ = do
-        writeIORef evRef Nothing
         react handle
+        writeIORef evRef Nothing
 
   playIO display color freq () toPic handleInput stepWorld
 
-type DrawerT m = WriterT Picture (ReaderT (Maybe Event) m)
+-- * DrawerT
+
+type DrawerT m = WriterT Picture (Control.Monad.Trans.MSF.Reader.ReaderT (Maybe Event) m)
 
 runDrawerS :: Monad m => MSF (DrawerT m) () () -> MSF m (Maybe Event) Picture
-runDrawerS msf = arr (,()) >>> runReaderS (runWriterS msf) >>> arr fst
+runDrawerS msf = arr (,()) >>> Control.Monad.Trans.MSF.Reader.runReaderS (runWriterS msf) >>> arr fst
 
 draw :: Monad m => MSF (DrawerT m) Picture ()
 draw = arrM tell
+
+-- * MSF convenience functions
+
+hold :: Monad m => a -> MSF m (Maybe a) a
+hold =
+  mealy
+    ( \x y -> case x of
+        Nothing -> (y, y)
+        Just x' -> (x', x')
+    )
+
+fifoGate :: Monad m => MSF m ([a], Bool) (Maybe a)
+fifoGate =
+  mealy
+    ( \(xs, b) ys ->
+        if b
+          then safeSnoc (ys ++ xs)
+          else (Nothing, ys ++ xs)
+    )
+    []
+  where
+    safeSnoc [] = (Nothing, [])
+    safeSnoc (x : xs) = (Just x, xs)
