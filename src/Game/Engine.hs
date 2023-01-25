@@ -45,10 +45,11 @@ tick =
 
 mainSF :: Monad m => MSF (DrawerT m) () ()
 mainSF = proc () -> do
+  -- A "tick" is each frame that the snake advances
   n <- count -< ()
-  let isTick = n `mod` 20 == 1
+  let isTick = n `mod` 8 == 1
 
-  -- handle inputs (buffer)
+  -- Handle inputs (buffer)
   dirs <- handleEvents -< ()
   dir <- fifoGate -< (dirs, isTick)
 

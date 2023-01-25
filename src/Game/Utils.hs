@@ -10,6 +10,11 @@ import Graphics.Gloss.Interface.IO.Game
 
 -- | Display an MSF outputting a picture value as a window using Gloss.
 -- Note that the MSF is not passed a real-time clock.
+--
+-- The MSF is always called at a consistent framerate, regardless of when input
+-- events are registered. It is passed a buffered list of all events that
+-- occured between the last and current frames, with the first event in the
+-- list being the latest.
 playMSF :: Display -> Color -> Int -> MSF IO [Event] Picture -> IO ()
 playMSF display color freq msf = do
   -- `react` doesn't allow inputs or outputs, so we have to use IORefs
@@ -52,6 +57,8 @@ hold =
         Just x' -> (x', x')
     )
 
+-- | Buffers and returns the elements in FIFO order, only allowing elements to
+-- shift out whenever the input boolean is true.
 fifoGate :: Monad m => MSF m ([a], Bool) (Maybe a)
 fifoGate =
   mealy
