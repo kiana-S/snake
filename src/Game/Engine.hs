@@ -4,9 +4,11 @@
 
 module Game.Engine where
 
+import Control.Monad (guard)
 import Control.Monad.Trans.MSF.Maybe
 import Control.Monad.Trans.MSF.Reader
 import Control.Monad.Trans.MSF.Writer
+import Data.Functor (($>))
 import Data.Maybe
 import Data.MonadicStreamFunction
 import Game.Display
@@ -15,22 +17,30 @@ import Game.Utils
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 
-handleEvents :: Monad m => MSF (DrawerT m) () [Direction]
-handleEvents = mapMaybe getDir <$> liftTransS (constM ask)
+-- * Input handling
+
+getKeys :: Monad m => MSF (DrawerT m) () [Key]
+getKeys = mapMaybe getKey <$> liftTransS (constM ask)
   where
-    getDir :: Event -> Maybe Direction
-    getDir (EventKey k Down _ _) = case k of
-      Char 'w' -> Just U
-      Char 's' -> Just D
-      Char 'a' -> Just L
-      Char 'd' -> Just R
-      SpecialKey KeyUp -> Just U
-      SpecialKey KeyDown -> Just D
-      SpecialKey KeyLeft -> Just L
-      SpecialKey KeyRight -> Just R
-      _ -> Nothing
+    getKey :: Event -> Maybe Key
+    getKey (EventKey k Down _ _) = Just k
+    getKey _ = Nothing
+
+handleEvents :: Monad m => MSF (DrawerT m) () [Direction]
+handleEvents = mapMaybe getDir <$> getKeys
+  where
+    getDir :: Key -> Maybe Direction
+    getDir (Char 'w') = Just U
+    getDir (Char 's') = Just D
+    getDir (Char 'a') = Just L
+    getDir (Char 'd') = Just R
+    getDir (SpecialKey KeyUp) = Just U
+    getDir (SpecialKey KeyDown) = Just D
+    getDir (SpecialKey KeyLeft) = Just L
+    getDir (SpecialKey KeyRight) = Just R
     getDir _ = Nothing
 
+-- * Core game engine
 
 tickState :: Maybe Direction -> GameState -> Maybe GameState
 tickState dir state =
