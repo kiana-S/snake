@@ -4,6 +4,7 @@
 
 module Game.Engine where
 
+import Control.Monad.Trans.MSF.Maybe
 import Control.Monad.Trans.MSF.Reader
 import Control.Monad.Trans.MSF.Writer
 import Data.Maybe
@@ -30,27 +31,40 @@ handleEvents = mapMaybe getDir <$> liftTransS (constM ask)
       _ -> Nothing
     getDir _ = Nothing
 
-tick :: Monad m => MSF (DrawerT m) (Maybe Direction) GameState
-tick =
-  next initialState $
-    mealy
-      ( \input state ->
-          let moveDir = setDir state.moveDir input
-              snakePos = movePos moveDir <$> state.snakePos
-              berryPos = state.berryPos
-              newstate = GameState {..}
-           in (newstate, newstate)
-      )
-      initialState
 
-mainSF :: Monad m => MSF (DrawerT m) () ()
+tickState :: Maybe Direction -> GameState -> Maybe GameState
+tickState dir state =
+  let moveDir = setDir state.moveDir dir
+      newBlock = movePos moveDir $ head state.snakePos
+      hitBerry = newBlock == state.berryPos
+      snakePos =
+        newBlock
+          : if hitBerry
+            then state.snakePos
+            else init state.snakePos
+      isHit = head snakePos `notElem` tail snakePos
+      berryPos =
+        if hitBerry
+          then
+            ( (fst state.berryPos * 80 `div` 3) `mod` 15,
+              (snd state.berryPos * 75 `div` 6) `mod` 15
+            )
+          else state.berryPos
+   in guard isHit $> GameState {..}
+
+tick :: Monad m => MSF (MaybeT (DrawerT m)) (Maybe Direction) GameState
+tick = feedback initialState $ proc (dir, state) -> do
+  newstate <- maybeExit -< tickState dir state
+  returnA -< (newstate, newstate)
+
+mainSF :: Monad m => MSF (MaybeT (DrawerT m)) () ()
 mainSF = proc () -> do
   -- A "tick" is each frame that the snake advances
   n <- count -< ()
   let isTick = n `mod` 8 == 1
 
   -- Handle inputs (buffer)
-  dirs <- handleEvents -< ()
+  dirs <- liftTransS handleEvents -< ()
   dir <- fifoGate -< (dirs, isTick)
 
   state' <-
@@ -61,4 +75,4 @@ mainSF = proc () -> do
   state <- hold undefined -< state'
 
   -- Display the current state
-  displayState -< state
+  liftTransS displayState -< state

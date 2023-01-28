@@ -1,5 +1,6 @@
 module Game.Utils where
 
+import Control.Monad.Trans.MSF.Maybe
 import Control.Monad.Trans.MSF.Reader
 import Control.Monad.Trans.MSF.Writer
 import Data.IORef
@@ -71,3 +72,6 @@ fifoGate =
   where
     safeSnoc [] = (Nothing, [])
     safeSnoc (x : xs) = (Just x, xs)
+
+loopMaybe :: Monad m => MSF (MaybeT m) a b -> MSF m a b
+loopMaybe msf = msf `catchMaybe` loopMaybe msf

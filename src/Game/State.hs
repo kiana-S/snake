@@ -26,4 +26,4 @@ data GameState = GameState
   }
 
 initialState :: GameState
-initialState = GameState [(4, 4)] R (3, 3)
+initialState = GameState [(4, 5), (4, 4), (5, 4)] R (3, 3)
