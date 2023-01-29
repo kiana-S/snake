@@ -8,6 +8,7 @@ import Control.Monad (guard)
 import Control.Monad.Trans.MSF.Maybe
 import Control.Monad.Trans.MSF.Reader
 import Control.Monad.Trans.MSF.Writer
+import Data.Bits (xor)
 import Data.Functor (($>))
 import Data.Maybe
 import Data.MonadicStreamFunction
@@ -67,8 +68,8 @@ tick = feedback initialState $ proc (dir, state) -> do
   newstate <- maybeExit -< tickState dir state
   returnA -< (newstate, newstate)
 
-mainSF :: Monad m => MSF (MaybeT (DrawerT m)) () ()
-mainSF = proc () -> do
+gameSF :: Monad m => MSF (MaybeT (DrawerT m)) () GameState
+gameSF = proc () -> do
   -- A "tick" is each frame that the snake advances
   n <- count -< ()
   let isTick = n `mod` 8 == 1
@@ -77,12 +78,16 @@ mainSF = proc () -> do
   dirs <- liftTransS handleEvents -< ()
   dir <- fifoGate -< (dirs, isTick)
 
-  state' <-
-    if isTick
-      then fmap Just tick -< dir
-      else returnA -< Nothing
-  -- undefined is safe here because the first frame is guaranteed to be a tick
-  state <- hold undefined -< state'
+  -- only run `tick` whenever there's a tick
+  pauseMSF undefined tick -< (dir, isTick)
+
+mainSF :: Monad m => MSF (DrawerT m) () ()
+mainSF = proc () -> do
+  keys <- getKeys -< ()
+  let esc = SpecialKey KeyEsc `elem` keys
+
+  paused <- accumulateWith xor True -< esc
+  state <- pauseMSF undefined (loopMaybe gameSF) -< ((), paused)
 
   -- Display the current state
-  liftTransS displayState -< state
+  displayState -< state

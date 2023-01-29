@@ -1,3 +1,5 @@
+{-# LANGUAGE Arrows #-}
+
 module Game.Utils where
 
 import Control.Monad.Trans.MSF.Maybe
@@ -75,3 +77,11 @@ fifoGate =
 
 loopMaybe :: Monad m => MSF (MaybeT m) a b -> MSF m a b
 loopMaybe msf = msf `catchMaybe` loopMaybe msf
+
+pauseMSF :: Monad m => b -> MSF m a b -> MSF m (a, Bool) b
+pauseMSF def msf = proc (x, b) -> do
+  y <-
+    if b
+      then fmap Just msf -< x
+      else returnA -< Nothing
+  hold def -< y
