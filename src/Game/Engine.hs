@@ -1,10 +1,10 @@
 {-# LANGUAGE Arrows #-}
 {-# LANGUAGE OverloadedRecordDot #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module Game.Engine where
 
 import Control.Monad (guard)
+import Control.Monad.Trans
 import Control.Monad.Trans.MSF.Maybe
 import Control.Monad.Trans.MSF.Reader
 import Control.Monad.Trans.MSF.Writer
@@ -43,7 +43,7 @@ handleEvents = mapMaybe getDir <$> getKeys
 
 -- * Core game engine
 
-tickState :: Maybe Direction -> GameState -> Maybe GameState
+tickState :: Maybe Direction -> GameState -> MaybeT IO GameState
 tickState dir state =
   let moveDir = setDir state.moveDir dir
       newBlock = movePos moveDir $ head state.snakePos
@@ -56,19 +56,16 @@ tickState dir state =
       isHit = head snakePos `notElem` tail snakePos
       berryPos =
         if hitBerry
-          then
-            ( (fst state.berryPos * 80 `div` 3) `mod` 15,
-              (snd state.berryPos * 75 `div` 6) `mod` 15
-            )
-          else state.berryPos
-   in guard isHit $> GameState {..}
+          then randomPos
+          else pure state.berryPos
+   in MaybeT $ (guard isHit $>) <$> (GameState snakePos moveDir <$> berryPos)
 
-tick :: Monad m => MSF (MaybeT (DrawerT m)) (Maybe Direction) GameState
-tick = feedback initialState $ proc (dir, state) -> do
-  newstate <- maybeExit -< tickState dir state
+tick :: MonadIO m => MSF (MaybeT (DrawerT m)) (Maybe Direction) GameState
+tick = feedbackM (liftIO randomState) $ proc (dir, state) -> do
+  newstate <- arrM (mapMaybeT (lift . lift . liftIO) . uncurry tickState) -< (dir, state)
   returnA -< (newstate, newstate)
 
-gameSF :: Monad m => MSF (MaybeT (DrawerT m)) () GameState
+gameSF :: MonadIO m => MSF (MaybeT (DrawerT m)) () GameState
 gameSF = proc () -> do
   -- A "tick" is each frame that the snake advances
   n <- count -< ()
@@ -81,7 +78,7 @@ gameSF = proc () -> do
   -- only run `tick` whenever there's a tick
   pauseMSF undefined tick -< (dir, isTick)
 
-mainSF :: Monad m => MSF (DrawerT m) () ()
+mainSF :: MonadIO m => MSF (DrawerT m) () ()
 mainSF = proc () -> do
   keys <- getKeys -< ()
   let esc = SpecialKey KeyEsc `elem` keys

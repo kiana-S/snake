@@ -52,6 +52,12 @@ draw = arrM tell
 
 -- * MSF convenience functions
 
+feedbackM :: Monad m => m c -> MSF m (a, c) (b, c) -> MSF m a b
+feedbackM init msf = feedback Nothing $ proc (x, state) -> do
+  state' <- arrM (maybe init pure) -< state
+  (y, newstate) <- msf -< (x, state')
+  returnA -< (y, Just newstate)
+
 hold :: Monad m => a -> MSF m (Maybe a) a
 hold =
   mealy

@@ -12,5 +12,7 @@ executable snake
   default-language:   GHC2021
   default-extensions: Arrows
   build-depends: base,
+                 mtl,
+                 random,
                  dunai,
                  gloss
