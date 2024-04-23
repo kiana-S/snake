@@ -14,16 +14,16 @@ import Game.Utils
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 
-getSquare :: (Int, Int) -> Picture
-getSquare (toEnum -> x, toEnum -> y) =
-  translate (x * 25) (y * 25) $ rectangleSolid 25 25
+getSquare :: (Int, Int) -> (Int, Int) -> Picture
+getSquare (toEnum -> winWidth, toEnum -> winHeight) (toEnum -> x, toEnum -> y) =
+  translate (x * winWidth / 30) (y * winHeight / 20) $ rectangleSolid (winWidth / 30) (winHeight / 20)
 
-displayState :: Monad m => MSF (DrawerT m) GameState ()
-displayState = proc state -> do
-  draw -< pictures $ color green . getSquare <$> state.snakePos
-  draw -< color red $ getSquare state.berryPos
+displayState :: Monad m => MSF (DrawerT m) (GameState, (Int, Int)) ()
+displayState = proc (state, windowSize) -> do
+  draw -< pictures $ color green . getSquare windowSize <$> state.snakePos
+  draw -< color red $ getSquare windowSize state.berryPos
 
-displayPause :: Monad m => MSF (DrawerT m) () ()
-displayPause = proc () -> do
-  draw -< color (withAlpha 0.5 black) $ rectangleSolid 5000 5000
+displayPause :: Monad m => MSF (DrawerT m) (Int, Int) ()
+displayPause = proc (width, height) -> do
+  draw -< color (withAlpha 0.5 black) $ rectangleSolid (toEnum width) (toEnum height)
   draw -< color white $ scale 0.5 0.5 $ text "Paused"

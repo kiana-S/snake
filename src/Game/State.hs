@@ -4,6 +4,9 @@ module Game.State where
 
 import System.Random
 import Control.Monad
+import Graphics.Gloss.Interface.IO.Game
+import Data.Maybe (mapMaybe)
+import Control.Applicative (asum)
 
 data Direction = U | D | L | R deriving (Eq)
 
@@ -22,6 +25,7 @@ opposite R = L
 setDir :: Direction -> Maybe Direction -> Direction
 setDir d Nothing = d
 setDir d (Just d') = if opposite d == d' then d else d'
+
 
 data GameState = GameState
   { snakePos :: [(Int, Int)],
@@ -47,3 +51,35 @@ randomState = do
   hd <- randomPos
   let snake = scanr movePos hd dirs
   GameState snake <$> randomDirection <*> randomPos
+
+
+data GameEvents = GameEvents
+  { directions :: [Direction],
+    pause :: Bool,
+    windowResize :: Maybe (Int, Int)
+  }
+
+parseEvents :: [Event] -> GameEvents
+parseEvents evs = GameEvents
+  (mapMaybe getDir evs) (any getPause evs) (asum $ fmap getResize evs)
+  where
+    getDir :: Event -> Maybe Direction
+    getDir (EventKey k Down _ _) = case k of
+      Char 'w' -> Just U
+      Char 's' -> Just D
+      Char 'a' -> Just L
+      Char 'd' -> Just R
+      SpecialKey KeyUp -> Just U
+      SpecialKey KeyDown -> Just D
+      SpecialKey KeyLeft -> Just L
+      SpecialKey KeyRight -> Just R
+      _ -> Nothing
+    getDir _ = Nothing
+
+    getPause :: Event -> Bool
+    getPause (EventKey (SpecialKey KeyEsc) Down _ _) = True
+    getPause _ = False
+
+    getResize :: Event -> Maybe (Int, Int)
+    getResize (EventResize resize) = Just resize
+    getResize _ = Nothing
