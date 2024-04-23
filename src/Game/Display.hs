@@ -20,5 +20,10 @@ getSquare (toEnum -> x, toEnum -> y) =
 
 displayState :: Monad m => MSF (DrawerT m) GameState ()
 displayState = proc state -> do
-  draw -< mconcat $ color green . getSquare <$> state.snakePos
+  draw -< pictures $ color green . getSquare <$> state.snakePos
   draw -< color red $ getSquare state.berryPos
+
+displayPause :: Monad m => MSF (DrawerT m) () ()
+displayPause = proc () -> do
+  draw -< color (withAlpha 0.5 black) $ rectangleSolid 5000 5000
+  draw -< color white $ scale 0.5 0.5 $ text "Paused"

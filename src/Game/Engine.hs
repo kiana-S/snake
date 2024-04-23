@@ -83,8 +83,11 @@ mainSF = proc () -> do
   keys <- getKeys -< ()
   let esc = SpecialKey KeyEsc `elem` keys
 
-  paused <- accumulateWith xor True -< esc
-  state <- pauseMSF undefined (loopMaybe gameSF) -< ((), paused)
+  unpaused <- accumulateWith xor True -< esc
+  state <- pauseMSF undefined (loopMaybe gameSF) -< ((), unpaused)
 
   -- Display the current state
   displayState -< state
+  if unpaused
+    then returnA -< ()
+    else displayPause -< ()
