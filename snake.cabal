@@ -9,6 +9,10 @@ build-type:    Simple
 executable snake
   hs-source-dirs: src
   main-is:        Main.hs
+  other-modules:  Game.Display,
+                  Game.Engine,
+                  Game.State,
+                  Game.Utils
   default-language:   GHC2021
   default-extensions: Arrows
   build-depends: base,

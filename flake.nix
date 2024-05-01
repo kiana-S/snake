@@ -1,52 +1,27 @@
 {
-  description = "A snake game in Haskell using Dunai";
-
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs";
-    flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    haskell-flake.url = "github:srid/haskell-flake";
   };
+  outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [ inputs.haskell-flake.flakeModule ];
 
-  outputs = { self, nixpkgs, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-        
-        # package/executable name
-        packageName = "snake";
-        execName = packageName;
-        
-        # version of ghc used
-        hp = pkgs.haskell.packages.ghc92;
-        
-        project = returnShellEnv:
-          hp.developPackage {
-            inherit returnShellEnv;
-            name = packageName;
-            root = ./.;
-            withHoogle = false;
-            modifier = drv:
-              pkgs.haskell.lib.addBuildTools drv (with hp; [
-                # Specify your build/dev dependencies here.
-                hlint
-                haskell-language-server
-                ormolu
+      systems = nixpkgs.lib.systems.flakeExposed;
+      perSystem = { config, system, self', pkgs, ... }: {
 
-                pkgs.mesa
-                pkgs.mesa_glu
-                pkgs.freeglut
-              ]);
-          };
-      in
-      {
-        # Used by `nix build` & `nix run` (prod exe)
-        packages.default = project false;
-
-        apps.default = {
-          type = "app";
-          program = "${self.packages.${system}.default}/bin/${execName}";
+        _module.args.pkgs = import nixpkgs {
+          inherit system;
+          config.allowBroken = true;
         };
 
-        # Used by `nix develop` (dev shell)
-        devShell = project true;
-      });
+        haskellProjects.default = {
+          basePackages = pkgs.haskell.packages.ghc94;
+        };
+
+        packages.default = self'.packages.snake;
+        apps.default = self'.apps.snake;
+      };
+    };
 }
